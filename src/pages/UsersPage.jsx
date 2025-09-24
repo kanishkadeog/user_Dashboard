@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Container, Row, Col, Button, Form } from "react-bootstrap";
+import { Container, Row, Col, Button } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
 import UserTable from "../components/UserTable";
 import Pagination from "../components/Pagination";
@@ -8,27 +8,31 @@ import FilterPopup from "../components/FilterPopup";
 import { getUsers, deleteUser } from "../services/api";
 
 export default function UsersPage() {
-  const [users, setUsers] = useState([]); // master list
-  const [filteredUsers, setFilteredUsers] = useState([]); // after search/filter
+  // State to hold the master list of users
+  const [users, setUsers] = useState([]);
+  // State to hold users after search/filter applied
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  // State for search query
   const [searchQuery, setSearchQuery] = useState("");
+  // State to control filter popup visibility
   const [showFilter, setShowFilter] = useState(false);
 
-  // sorting
+  // State to store current sorting configuration
   const [sortConfig, setSortConfig] = useState({ key: "id", direction: "asc" });
 
-  // pagination
-  const [pageLimit, setPageLimit] = useState(10);
+  // Pagination states
+  const [pageLimit, setPageLimit] = useState(10); // rows per page
   const [currentPage, setCurrentPage] = useState(1);
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // fetch & enrich users
+  // Fetch users when component mounts
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  // handle incoming state from Add/Edit pages (so UI updates immediately)
+  // Update UI if coming from Add/Edit pages with state
   useEffect(() => {
     if (location.state) {
       const { addedUser, updatedUser } = location.state;
@@ -36,10 +40,11 @@ export default function UsersPage() {
         const enriched = enrichSingleUser(addedUser);
         setUsers((prev) => [enriched, ...prev]);
         setFilteredUsers((prev) => [enriched, ...prev]);
-        // clear navigation state
+        // Clear navigation state after processing
         navigate(location.pathname, { replace: true, state: null });
       } else if (updatedUser) {
         const enriched = enrichSingleUser(updatedUser);
+        // Update user in master and filtered lists
         setUsers((prev) => prev.map((u) => (u.id === enriched.id ? enriched : u)));
         setFilteredUsers((prev) => prev.map((u) => (u.id === enriched.id ? enriched : u)));
         navigate(location.pathname, { replace: true, state: null });
@@ -47,6 +52,7 @@ export default function UsersPage() {
     }
   }, [location.state]); // eslint-disable-line
 
+  // Helper to enrich user object with firstName, lastName, department
   const enrichSingleUser = (user) => {
     const [firstName, ...rest] = (user.name || "").split(" ");
     return {
@@ -57,10 +63,10 @@ export default function UsersPage() {
     };
   };
 
+  // Fetch users from API and enrich data
   const fetchUsers = async () => {
     try {
       const data = await getUsers();
-      // enrich each user with firstName, lastName, department
       const enriched = data.map((user) => {
         const [firstName, ...rest] = (user.name || "").split(" ");
         return {
@@ -73,16 +79,16 @@ export default function UsersPage() {
       setUsers(enriched);
       setFilteredUsers(enriched);
     } catch (err) {
-      alert("Error fetching users");
+      alert("Error fetching users"); // show error alert if fetch fails
     }
   };
 
-  // delete
+  // Delete a user
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure to delete this user?")) return;
+    if (!window.confirm("Are you sure to delete this user?")) return; // confirm before deletion
     try {
-      await deleteUser(id); // JSONPlaceholder simulates deletion
-      const updated = users.filter((u) => u.id !== id);
+      await deleteUser(id); // call API to delete
+      const updated = users.filter((u) => u.id !== id); // remove from state
       setUsers(updated);
       setFilteredUsers(updated);
     } catch {
@@ -90,7 +96,7 @@ export default function UsersPage() {
     }
   };
 
-  // search
+  // Handle search input
   const handleSearch = (query) => {
     setSearchQuery(query);
     const q = query.trim().toLowerCase();
@@ -108,10 +114,10 @@ export default function UsersPage() {
       );
     });
     setFilteredUsers(filtered);
-    setCurrentPage(1);
+    setCurrentPage(1); // reset to first page after search
   };
 
-  // filter
+  // Apply advanced filters from FilterPopup
   const handleFilter = (filters) => {
     const filtered = users.filter((u) => {
       return (
@@ -122,22 +128,24 @@ export default function UsersPage() {
       );
     });
     setFilteredUsers(filtered);
-    setCurrentPage(1);
+    setCurrentPage(1); // reset to first page after filtering
   };
 
+  // Clear search and filter
   const handleClearFilter = () => {
     setFilteredUsers(users);
     setSearchQuery("");
     setCurrentPage(1);
   };
 
-  // sorting
+  // Handle sorting when column header clicked
   const handleSort = (key) => {
     let dir = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") dir = "desc";
     setSortConfig({ key, direction: dir });
   };
 
+  // Sort filtered users based on sortConfig
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     const { key, direction } = sortConfig;
     let A = (key === "firstName" || key === "lastName") ? (a[key] || "") : (key === "id" ? Number(a[key]) : (a[key] || ""));
@@ -153,24 +161,22 @@ export default function UsersPage() {
     return 0;
   });
 
-  // Pagination controls
+  // Pagination calculations
   const total = sortedUsers.length;
   const totalPages = Math.max(1, Math.ceil(total / pageLimit));
   const displayed = sortedUsers.slice((currentPage - 1) * pageLimit, currentPage * pageLimit);
 
-  // When pageLimit changes, reset to page 1
+  // Reset to first page if pageLimit changes
   useEffect(() => setCurrentPage(1), [pageLimit]);
 
   return (
     <Container className="mt-3">
+      {/* Top controls: search, add, filter, clear */}
       <Row className="mb-2 align-items-center">
-        <Col md={4}>
-        </Col>
-
+        <Col md={4}></Col>
         <Col md={4}>
           <SearchBar value={searchQuery} onChange={handleSearch} />
         </Col>
-
         <Col md={4} className="text-end">
           <Button className="me-2" variant="success" onClick={() => navigate("/users/add")}>Add</Button>
           <Button className="me-2" variant="info" onClick={() => setShowFilter(true)}>Filter</Button>
@@ -178,8 +184,34 @@ export default function UsersPage() {
         </Col>
       </Row>
 
+      {/* Show filter popup if active */}
       {showFilter && <FilterPopup show={showFilter} handleClose={() => setShowFilter(false)} applyFilter={handleFilter} />}
 
+     
+      {/* Show table or empty message */}
+      {displayed.length === 0 ? (
+        <div className="text-center p-4">
+          <h5 className="text-danger">No users found</h5>
+        </div>
+      ) : (
+        <>
+          <UserTable 
+            users={displayed} 
+            onEdit={(id) => navigate(`/users/edit/${id}`)} 
+            onDelete={handleDelete} 
+            onSort={handleSort} 
+            sortConfig={sortConfig} 
+          />
+          <Pagination 
+            total={total} 
+            pageLimit={pageLimit} 
+            currentPage={currentPage} 
+            setCurrentPage={setCurrentPage} 
+          />
+        </>
+      )}
+
+       {/* Pagination controls and info */}
       <Row className="mb-2">
         <Col md={6}>
           <div>
@@ -194,183 +226,7 @@ export default function UsersPage() {
         </Col>
       </Row>
 
-      {displayed.length === 0 ? (
-        <div className="text-center p-4">
-          <h5 className="text-danger">No users found</h5>
-        </div>
-      ) : (
-        <>
-          <UserTable users={displayed} onEdit={(id) => navigate(`/users/edit/${id}`)} onDelete={handleDelete} onSort={handleSort} sortConfig={sortConfig} />
-          <Pagination total={total} pageLimit={pageLimit} currentPage={currentPage} setCurrentPage={setCurrentPage} />
-        </>
-      )}
+
     </Container>
   );
 }
-
-
-
-
-//==========================
-
-// import React, { useState, useEffect } from "react";
-// import { Container, Row, Col, Button } from "react-bootstrap";
-// import UserTable from "../components/UserTable";
-// import { getUsers, deleteUser } from "../services/api";
-// import { useNavigate } from "react-router-dom";
-// import FilterPopup from "../components/FilterPopup";
-
-// const UsersPage = () => {
-//   // State to store all users fetched from API
-//   const [users, setUsers] = useState([]);
-//   // State to store filtered/search results
-//   const [filteredUsers, setFilteredUsers] = useState([]);
-//   // State for search input value
-//   const [searchQuery, setSearchQuery] = useState("");
-//   // State to toggle filter popup
-//   const [showFilter, setShowFilter] = useState(false);
-//   // State to track sorting key and direction
-//   const [sortConfig, setSortConfig] = useState({ key: "id", direction: "asc" });
-
-//   const navigate = useNavigate();
-
-//   // Fetch users when component mounts
-//   useEffect(() => {
-//     fetchUsers();
-//   }, []);
-
-//   // Function to fetch users from API
-//   const fetchUsers = async () => {
-//     try {
-//       const data = await getUsers();
-//       // Enrich data: use company.name as department
-//       const enrichedData = data.map((user) => ({
-//         ...user,
-//         department: user.company?.name || "N/A",
-//       }));
-//       setUsers(enrichedData);
-//       setFilteredUsers(enrichedData);
-//     } catch {
-//       alert("Error fetching users");
-//     }
-//   };
-
-//   // Delete user by ID
-//   const handleDelete = async (id) => {
-//     if (window.confirm("Are you sure to delete this user?")) {
-//       try {
-//         await deleteUser(id);
-//         // Remove deleted user from state
-//         const updatedUsers = users.filter((u) => u.id !== id);
-//         setUsers(updatedUsers);
-//         setFilteredUsers(updatedUsers);
-//       } catch {
-//         alert("Error deleting user");
-//       }
-//     }
-//   };
-
-//   // Handle search input
-//   const handleSearch = (query) => {
-//     setSearchQuery(query);
-//     const filtered = users.filter((user) => {
-//       return (
-//         user.name.toLowerCase().includes(query.toLowerCase()) ||
-//         user.email.toLowerCase().includes(query.toLowerCase()) ||
-//         user.department.toLowerCase().includes(query.toLowerCase())
-//       );
-//     });
-//     setFilteredUsers(filtered);
-//   };
-
-//   // Apply filter from FilterPopup
-//   const handleFilter = (filters) => {
-//     const filtered = users.filter((user) => {
-//       return (
-//         (!filters.name || user.name.toLowerCase().includes(filters.name.toLowerCase())) &&
-//         (!filters.email || user.email.toLowerCase().includes(filters.email.toLowerCase())) &&
-//         (!filters.department || user.department.toLowerCase().includes(filters.department.toLowerCase()))
-//       );
-//     });
-//     setFilteredUsers(filtered || []);
-//     setShowFilter(false); // Close filter popup
-//   };
-
-//   // Clear filters and show all users
-//   const handleClearFilter = () => {
-//     setFilteredUsers(users);
-//   };
-
-//   // Handle sorting by column
-//   const handleSort = (key) => {
-//     let direction = "asc";
-//     if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
-//     setSortConfig({ key, direction });
-//   };
-
-//   // Sort users based on sortConfig
-//   const sortedUsers = [...filteredUsers].sort((a, b) => {
-//     const { key, direction } = sortConfig;
-//     let compareA = a[key];
-//     let compareB = b[key];
-//     if (key === "id") {
-//       compareA = Number(compareA);
-//       compareB = Number(compareB);
-//     } else {
-//       compareA = compareA.toLowerCase();
-//       compareB = compareB.toLowerCase();
-//     }
-//     if (compareA < compareB) return direction === "asc" ? -1 : 1;
-//     if (compareA > compareB) return direction === "asc" ? 1 : -1;
-//     return 0;
-//   });
-
-//   return (
-//     <Container className="mt-4">
-//       <Row className="mb-3">
-        
-//         <Col className="text-end">
-//           {/* Button to navigate to Add User page */}
-//           <Button variant="primary" onClick={() => navigate("/add")}>Add User</Button>{" "}
-//           {/* Toggle filter popup */}
-//           <Button variant="secondary" onClick={() => setShowFilter(!showFilter)}>Filter</Button>{" "}
-//           {/* Clear applied filters */}
-//           <Button variant="outline-secondary" onClick={handleClearFilter}>Clear Filter</Button>
-//         </Col>
-//       </Row>
-
-//       {/* Show FilterPopup if toggled */}
-//       {showFilter && <FilterPopup onApply={handleFilter} onClose={() => setShowFilter(false)} />}
-
-      
-//       {/* UserTable component to display users */}
-//   {sortedUsers.length === 0 ? (
-//   <div className="text-center p-3">
-//         <h4 className="text-center mb-4 text-danger">No users found</h4>
-
-//   </div>
-// ) : (
-//   <UserTable
-//     users={sortedUsers}
-//     onDelete={handleDelete}
-//     onEdit={(id) => navigate(`/edit/${id}`)}
-//     onSearch={handleSearch}
-//     onSort={handleSort}
-//     sortConfig={sortConfig}
-//   />
-// )}
-
-//       {/* <UserTable
-//         users={sortedUsers}
-//         onDelete={handleDelete}
-//         onEdit={(id) => navigate(`/edit/${id}`)}
-//         onSearch={handleSearch}
-//         onSort={handleSort}
-//         sortConfig={sortConfig}
-//       /> */}
-    
-//     </Container>
-//   );
-// };
-
-// export default UsersPage;
