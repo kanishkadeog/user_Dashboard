@@ -1,58 +1,55 @@
 import React, { useEffect, useState } from "react";
+import { Card } from "react-bootstrap";
+import { useNavigate, useParams } from "react-router-dom";
 import UserForm from "../components/UserForm";
-import { updateUser, getUsers } from "../services/api";
-import { useParams, useNavigate } from "react-router-dom";
+import { getUsers, updateUser } from "../services/api";
 
-const EditUserPage = () => {
-  const { id } = useParams(); // Get user ID from URL
-  const navigate = useNavigate(); // Navigation hook
-  const [user, setUser] = useState(null); // State to store user data
+export default function EditUserPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [initial, setInitial] = useState(null);
 
-  // Fetch user data when component mounts or id changes
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchOne = async () => {
       try {
-        const users = await getUsers(); // Fetch all users
-        const u = users.find((u) => u.id === Number(id)); // Find user by ID
-        const [firstName, lastName] = u.name.split(" "); // Split full name into first and last
-        setUser({ 
-          firstName, 
-          lastName, 
-          email: u.email, 
-          department: u.department || "IT" // Default department if missing
+        const all = await getUsers();
+        const found = all.find((u) => Number(u.id) === Number(id));
+        if (!found) {
+          alert("User not found");
+          navigate("/users");
+          return;
+        }
+        setInitial({
+          ...found,
+          department: found.company?.name || "",
+          firstName: found.name.split(" ")[0],
+          lastName: found.name.split(" ").slice(1).join(" "),
         });
       } catch {
         alert("Error fetching user");
+        navigate("/users");
       }
     };
-    fetchUser();
-  }, [id]);
+    fetchOne();
+  }, [id]); // eslint-disable-line
 
-  // Handle form submission
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (payload) => {
     try {
-      // Update user data via API
-      await updateUser(id, { 
-        name: `${data.firstName} ${data.lastName}`, 
-        email: data.email, 
-        department: data.department 
-      });
-      alert("User updated successfully");
-      navigate("/users"); // Navigate back to Users page
+      const updated = await updateUser(id, payload);
+      navigate("/users", { state: { updatedUser: updated } });
     } catch {
-      alert("Error updating user");
+      alert("Failed to update user");
     }
   };
 
-  return user ? (
-    <div className="card p-4 shadow-sm">
+  return (
+    <Card className="p-3">
       <h4>Edit User</h4>
-      {/* UserForm component pre-filled with user data */}
-      <UserForm initialData={user} onSubmit={handleSubmit} />
-    </div>
-  ) : (
-    <p>Loading...</p> // Show loading until user data is fetched
+      {initial ? (
+        <UserForm initialData={initial} onSubmit={handleSubmit} submitLabel="Update User" />
+      ) : (
+        <div>Loading...</div>
+      )}
+    </Card>
   );
-};
-
-export default EditUserPage;
+}

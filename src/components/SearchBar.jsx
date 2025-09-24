@@ -1,16 +1,13 @@
 import React from "react";
 
-// SearchBar component for filtering users by name, email, or department
-const SearchBar = ({ searchQuery, setSearchQuery }) => {
+export default function SearchBar({ value, onChange }) {
   return (
     <input
       type="text"
-      className="form-control mb-2" // Bootstrap styling
-      placeholder="Search by Name, Email, Department" // Placeholder text
-      value={searchQuery} // Controlled input value
-      onChange={(e) => setSearchQuery(e.target.value)} // Update parent state on change
+      className="form-control mb-2"
+      placeholder="Search by first name, last name, email or department..."
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
     />
   );
-};
-
-export default SearchBar;
+}

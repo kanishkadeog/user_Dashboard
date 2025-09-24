@@ -1,71 +1,52 @@
 import React from "react";
-import { Table, Button } from "react-bootstrap";
-import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { FaSort, FaSortUp, FaSortDown, FaEdit, FaTrash } from "react-icons/fa";
+import { Button } from "react-bootstrap";
 
-const UserTable = ({ users, onDelete, onSort, sortField, sortOrder }) => {
-  const navigate = useNavigate(); // Hook to navigate programmatically
-
-  // Function to render appropriate sort icon for each column
+export default function UserTable({ users = [], onEdit, onDelete, onSort, sortConfig }) {
   const renderSortIcon = (field) => {
-    if (sortField !== field) return <FaSort />; // Default sort icon if not active
-    return sortOrder === "asc" ? <FaSortUp /> : <FaSortDown />; // Show asc/desc icon
+    if (sortConfig.key !== field) return <FaSort style={{ marginLeft: 6, opacity: 0.4 }} />;
+    return sortConfig.direction === "asc" ? <FaSortUp style={{ marginLeft: 6 }} /> : <FaSortDown style={{ marginLeft: 6 }} />;
   };
 
   return (
-    <Table striped bordered hover responsive>
-      <thead className="table-dark">
-        <tr>
-          {/* Column headers with sorting */}
-          <th onClick={() => onSort("id")} style={{ cursor: "pointer" }}>
-            ID {renderSortIcon("id")}
-          </th>
-          <th onClick={() => onSort("firstName")} style={{ cursor: "pointer" }}>
-            First Name {renderSortIcon("firstName")}
-          </th>
-          <th onClick={() => onSort("lastName")} style={{ cursor: "pointer" }}>
-            Last Name {renderSortIcon("lastName")}
-          </th>
-          <th onClick={() => onSort("email")} style={{ cursor: "pointer" }}>
-            Email {renderSortIcon("email")}
-          </th>
-          <th onClick={() => onSort("department")} style={{ cursor: "pointer" }}>
-            Department {renderSortIcon("department")}
-          </th>
-          <th>Actions</th> {/* Column for Edit/Delete buttons */}
-        </tr>
-      </thead>
-      <tbody>
-        {users.map((u) => {
-          const [firstName, lastName] = u.name.split(" "); // Split full name into first & last
-          return (
+    <div className="table-responsive">
+      <table className="table table-hover align-middle">
+        <thead className="table-dark">
+          <tr>
+            <th style={{ cursor: "pointer" }} onClick={() => onSort("id")}>
+              ID {renderSortIcon("id")}
+            </th>
+            <th style={{ cursor: "pointer" }} onClick={() => onSort("firstName")}>
+              First Name {renderSortIcon("firstName")}
+            </th>
+            <th style={{ cursor: "pointer" }} onClick={() => onSort("lastName")}>
+              Last Name {renderSortIcon("lastName")}
+            </th>
+            <th style={{ cursor: "pointer" }} onClick={() => onSort("email")}>
+              Email {renderSortIcon("email")}
+            </th>
+            <th style={{ cursor: "pointer" }} onClick={() => onSort("department")}>
+              Department {renderSortIcon("department")}
+            </th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((u) => (
             <tr key={u.id}>
               <td>{u.id}</td>
-              <td>{firstName}</td>
-              <td>{lastName || ""}</td>
+              <td>{u.firstName ?? (u.name ? u.name.split(" ")[0] : "")}</td>
+              <td>{u.lastName ?? (u.name ? u.name.split(" ").slice(1).join(" ") : "")}</td>
               <td>{u.email}</td>
-              <td>{u.department || ""}</td>
+              <td>{u.department ?? u.company?.name ?? "N/A"}</td>
               <td>
-                {/* Edit button navigates to Edit User page */}
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="me-2"
-                  onClick={() => navigate(`/edit/${u.id}`)}
-                >
-                  Edit
-                </Button>
-                {/* Delete button calls onDelete prop */}
-                <Button variant="danger" size="sm" onClick={() => onDelete(u.id)}>
-                  Delete
-                </Button>
+                <Button size="sm" variant="outline-primary" className="me-2" onClick={() => onEdit(u.id)}><FaEdit /> Edit</Button>
+                <Button size="sm" variant="outline-danger" onClick={() => onDelete(u.id)}><FaTrash /> Delete</Button>
               </td>
             </tr>
-          );
-        })}
-      </tbody>
-    </Table>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
-};
-
-export default UserTable;
+}

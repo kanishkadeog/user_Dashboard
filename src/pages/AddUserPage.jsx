@@ -1,34 +1,26 @@
 import React from "react";
+import { Card } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import UserForm from "../components/UserForm";
 import { addUser } from "../services/api";
-import { useNavigate } from "react-router-dom";
 
-const AddUserPage = () => {
-  const navigate = useNavigate(); // Hook to programmatically navigate between pages
+export default function AddUserPage() {
+  const navigate = useNavigate();
 
-  // Handle form submission
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (payload) => {
     try {
-      // Call API to add new user
-      await addUser({ 
-        name: `${data.firstName} ${data.lastName}`, 
-        email: data.email, 
-        department: data.department 
-      });
-      alert("User added successfully");
-      navigate("/users"); // Navigate back to Users page after adding
+      const created = await addUser(payload); // JSONPlaceholder will return created object with id
+      // pass created object back to UsersPage via location.state
+      navigate("/users", { state: { addedUser: created } });
     } catch {
-      alert("Error adding user"); // Show error if API call fails
+      alert("Failed to add user");
     }
   };
 
   return (
-    <div className="card p-4 shadow-sm">
+    <Card className="p-3">
       <h4>Add User</h4>
-      {/* Render form for adding user */}
-      <UserForm onSubmit={handleSubmit} />
-    </div>
+      <UserForm onSubmit={handleSubmit} submitLabel="Add User" />
+    </Card>
   );
-};
-
-export default AddUserPage;
+}
